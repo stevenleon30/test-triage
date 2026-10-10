@@ -1,0 +1,21 @@
+name: Test triage
+on: pull_request
+permissions:
+  pull-requests: write
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: PLAYWRIGHT_JSON_OUTPUT_NAME=report.json npx playwright test --reporter=json || true
+      - run: npx tsx triage.ts report.json > comment.md
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+      - run: gh pr comment ${{ github.event.number }} --body-file comment.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
